@@ -1,0 +1,33 @@
+build
+mx.scratch
+!.settings
+
+# CMake 빌드 폴더 (가장 중요)
+build/
+cmake-build-debug/
+cmake-build-release/
+
+
+__pycache__/
+
+
+# VS Code 설정 (개인 설정 공유 방지)
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+# c_cpp_properties는 경로가 하드코딩 되어있다면 제외하는게 좋습니다.
+
+# 컴파일 결과물
+*.bin
+*.elf
+*.hex
+*.map
+*.o
+*.d
+*.png
+*.pyc
+
+# 시스템 파일
+.DS_Store
+Thumbs.db

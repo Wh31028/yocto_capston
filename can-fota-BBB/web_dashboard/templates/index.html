@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automotive OTA Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: 'rgba(30, 41, 59, 0.7)',
+                        neonCyan: '#06b6d4',
+                        neonGreen: '#10b981',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+            background-image: 
+                radial-gradient(circle at 50% -20%, #1e3a8a 0%, transparent 40%),
+                radial-gradient(circle at -10% 50%, #064e3b 0%, transparent 40%);
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+        .terminal-log {
+            font-family: 'Courier New', Courier, monospace;
+            scrollbar-width: thin;
+            scrollbar-color: #475569 transparent;
+        }
+        .terminal-log::-webkit-scrollbar {
+            width: 6px;
+        }
+        .terminal-log::-webkit-scrollbar-thumb {
+            background-color: #475569;
+            border-radius: 4px;
+        }
+        
+        /* Circular Progress styling */
+        .circular-chart {
+            display: block;
+            margin: 0 auto;
+            max-width: 80%;
+            max-height: 250px;
+        }
+        .circle-bg {
+            fill: none;
+            stroke: #334155;
+            stroke-width: 3.8;
+        }
+        .circle {
+            fill: none;
+            stroke-width: 2.8;
+            stroke-linecap: round;
+            transition: stroke-dasharray 0.3s ease;
+        }
+        .percentage {
+            fill: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.5em;
+            text-anchor: middle;
+            font-weight: bold;
+        }
+        .pulsing-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-8">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-neonCyan text-white rounded-lg flex items-center justify-center font-bold text-xl shadow-[0_0_15px_rgba(6,182,212,0.5)]">
+                A
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-wider">AUTOMOTIVE OTA DASHBOARD</h1>
+                <p class="text-sm text-slate-400">SYSTEM STATUS: <span id="systemStatus" class="text-neonGreen font-semibold">STANDBY</span></p>
+            </div>
+        </div>
+        <div class="flex gap-4 items-center">
+            <span id="currentTime" class="text-slate-400 text-sm"></span>
+            <div class="px-3 py-1 bg-slate-800 rounded-full text-sm border border-slate-700">Admin ▼</div>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Column: Topology & Controls -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Controls Card -->
+            <div class="glass-card p-6">
+                <h2 class="text-lg font-semibold mb-4 text-slate-200">FIRMWARE UPLOAD & CONTROLS</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 items-end">
+                    
+                    <div class="col-span-1 md:col-span-1">
+                        <label class="block text-xs text-slate-400 mb-1">FIRMWARE FILE (.bin)</label>
+                        <input type="file" id="fileInput" accept=".bin" class="block w-full text-sm text-slate-300
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-slate-700 file:text-neonCyan
+                            hover:file:bg-slate-600 focus:outline-none cursor-pointer border border-slate-700 rounded-full"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">TARGET BOARD</label>
+                        <select id="boardSelect" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-neonCyan focus:border-neonCyan block p-2.5">
+                            <option value="f407">STM32F407 (Default)</option>
+                            <option value="f103">STM32F103 (Nucleo)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">CAN BITRATE</label>
+                        <select id="bitrateSelect" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-neonCyan focus:border-neonCyan block p-2.5">
+                            <option value="1000000">1000 kbps (1 Mbps)</option>
+                            <option value="500000">500 kbps</option>
+                            <option value="250000">250 kbps</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">PROTOCOL SELECTION</label>
+                        <select id="protocolSelect" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-neonCyan focus:border-neonCyan block p-2.5">
+                            <option value="custom">Custom Protocol (Selective NACK)</option>
+                            <option value="isotp">Standard ISO-TP (Baseline)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button id="uploadBtn" onclick="uploadFirmware()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg text-sm px-5 py-2.5 transition-colors border border-slate-600">
+                            1. Upload
+                        </button>
+                        <button id="startBtn" onclick="startUpdate()" disabled class="w-full bg-neonCyan hover:bg-cyan-400 text-darkBg font-bold rounded-lg text-sm px-5 py-2.5 shadow-[0_0_10px_rgba(6,182,212,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                            2. Start FOTA
+                        </button>
+                    </div>
+                </div>
+                <div id="uploadStatus" class="text-xs text-neonGreen mt-2 hidden">File uploaded successfully. Ready to start.</div>
+            </div>
+
+            <!-- Topology Card -->
+            <div class="glass-card p-6 relative overflow-hidden">
+                <h2 class="text-lg font-semibold mb-6 text-slate-200">NETWORK TOPOLOGY</h2>
+                
+                <div class="flex flex-col items-center gap-2 relative z-10 py-4">
+                    
+                    <!-- Cloud -->
+                    <div class="border-2 border-cyan-500 rounded-xl p-4 bg-slate-800/80 shadow-[0_0_15px_rgba(6,182,212,0.3)] w-64 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400">☁️</div>
+                        <div>
+                            <h3 class="font-bold text-sm">Cloud (ngrok)</h3>
+                            <p class="text-xs text-slate-400" id="ngrokUrlDisplay">ngrok.io/gateway</p>
+                        </div>
+                    </div>
+
+                    <!-- Connection Line -->
+                    <div class="w-1 h-12 bg-slate-600 relative">
+                        <div id="line1" class="absolute top-0 left-0 w-full h-0 bg-cyan-400 transition-all duration-500"></div>
+                    </div>
+
+                    <!-- BBB -->
+                    <div class="border border-slate-600 rounded-xl p-4 bg-slate-800/80 w-64 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-300">🖥️</div>
+                        <div>
+                            <h3 class="font-bold text-sm">BeagleBone Black</h3>
+                            <p class="text-xs text-slate-400 text-neonGreen flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-neonGreen pulsing-dot"></span> Gateway Online</p>
+                        </div>
+                    </div>
+
+                    <!-- Connection Line -->
+                    <div class="w-1 h-12 bg-slate-600 relative">
+                        <div id="line2" class="absolute top-0 left-0 w-full h-0 bg-green-400 transition-all duration-500"></div>
+                    </div>
+
+                    <!-- STM32 -->
+                    <div class="border-2 border-green-500 rounded-xl p-4 bg-slate-800/80 shadow-[0_0_15px_rgba(16,185,129,0.3)] w-64 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">⚡</div>
+                        <div>
+                            <h3 class="font-bold text-sm">STM32 ECU (CAN)</h3>
+                            <p class="text-xs text-slate-400" id="nodeStatus">Node: 0x10 | Target</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Abstract background design -->
+                <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle at 50% 50%, #06b6d4 1px, transparent 1px); background-size: 20px 20px;"></div>
+            </div>
+            
+        </div>
+
+        <!-- Right Column: Progress & Logs -->
+        <div class="space-y-6">
+            
+            <!-- Progress Card -->
+            <div class="glass-card p-6 flex flex-col items-center justify-center">
+                <h2 class="text-lg font-semibold mb-2 text-slate-200 w-full text-left">UPDATE STATUS</h2>
+                
+                <svg viewBox="0 0 36 36" class="circular-chart my-4">
+                    <path class="circle-bg"
+                        d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path class="circle stroke-cyan-400" id="progressCircle" stroke-dasharray="0, 100"
+                        d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <text x="18" y="20.35" class="percentage" id="progressText">0%</text>
+                </svg>
+
+                <div class="w-full mt-4 space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">Transfer Rate:</span>
+                        <span class="text-slate-200 font-mono" id="rateText">-- kbps</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">Protocol:</span>
+                        <span class="text-slate-200 font-mono" id="activeProtocolText">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal Card -->
+            <div class="glass-card p-0 overflow-hidden flex flex-col h-[300px]">
+                <div class="px-4 py-3 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
+                    <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-slate-400" id="wsStatusDot"></span>
+                        LIVE TERMINAL
+                    </h2>
+                    <button onclick="clearLog()" class="text-xs text-slate-400 hover:text-white">Clear</button>
+                </div>
+                <div id="terminal" class="terminal-log p-4 text-xs text-slate-300 flex-1 overflow-y-auto space-y-1">
+                    <div class="text-slate-500">System initialized. Waiting for connection...</div>
+                </div>
+            </div>
+
+            <!-- CAN Analyzer Card -->
+            <div class="glass-card p-0 overflow-hidden flex flex-col h-[300px]">
+                <div class="px-4 py-3 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
+                    <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-neonCyan"></span>
+                        RAW CAN ANALYZER
+                    </h2>
+                    <div class="flex gap-3 text-xs text-slate-400 font-mono">
+                        <span id="canPps">0 pps</span>
+                        <span id="canLoad">0% Load</span>
+                    </div>
+                </div>
+                <div class="bg-slate-900/50 text-[10px] text-slate-400 px-4 py-2 flex gap-4 border-b border-slate-800 font-bold tracking-wider">
+                    <div class="w-20">TIMESTAMP</div>
+                    <div class="w-16">ID</div>
+                    <div class="w-8">DLC</div>
+                    <div class="flex-1">DATA (HEX)</div>
+                </div>
+                <div id="canTable" class="terminal-log p-2 text-xs text-slate-300 flex-1 overflow-y-auto flex flex-col-reverse">
+                    <!-- CAN rows will be prepended here -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Clock
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }, 1000);
+        
+        // Host details
+        document.getElementById('ngrokUrlDisplay').textContent = window.location.host;
+
+        // WebSocket Setup
+        let ws;
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                document.getElementById('wsStatusDot').classList.replace('bg-slate-400', 'bg-neonGreen');
+                appendLog('WebSocket connected successfully.', 'text-neonGreen');
+            };
+            
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                if (msg.type === 'log') {
+                    appendLog(msg.data);
+                } else if (msg.type === 'status') {
+                    document.getElementById('systemStatus').textContent = msg.data;
+                    if(msg.data === 'UPDATING') {
+                        document.getElementById('line1').style.height = '100%';
+                        document.getElementById('line2').style.height = '100%';
+                    } else if(msg.data === 'COMPLETED') {
+                        setProgress(100);
+                    } else {
+                        document.getElementById('line1').style.height = '0%';
+                        document.getElementById('line2').style.height = '0%';
+                    }
+                } else if (msg.type === 'progress_update') {
+                    // Extract progress percentage
+                    const match = msg.data.match(/\((\d+\.?\d*)%\)/);
+                    if (match) {
+                        setProgress(parseInt(match[1]));
+                    }
+                    
+                    // Extract bytes for transfer rate calculation
+                    const bytesMatch = msg.data.match(/(\d+)\/\d+\s+bytes/);
+                    if (bytesMatch) {
+                        const currentBytes = parseInt(bytesMatch[1]);
+                        const now = Date.now();
+                        
+                        if (window.lastBytesTime && currentBytes > window.lastBytes) {
+                            const dt = (now - window.lastBytesTime) / 1000; // seconds
+                            if (dt >= 0.5) { // update rate text at most twice a second
+                                const rateBps = (currentBytes - window.lastBytes) / dt;
+                                const rateKbps = (rateBps * 8) / 1000; // Kilobits per sec
+                                document.getElementById('rateText').textContent = `${rateKbps.toFixed(1)} kbps`;
+                                window.lastBytes = currentBytes;
+                                window.lastBytesTime = now;
+                            }
+                        } else if (!window.lastBytesTime || currentBytes < window.lastBytes) {
+                            // Reset if starting new or undefined
+                            window.lastBytes = currentBytes;
+                            window.lastBytesTime = now;
+                        }
+                    }
+                } else if (msg.type === 'can_frames') {
+                    handleCanFrames(msg.frames, msg.count);
+                }
+            };
+            
+            ws.onclose = () => {
+                document.getElementById('wsStatusDot').classList.replace('bg-neonGreen', 'bg-red-500');
+                appendLog('WebSocket disconnected. Reconnecting in 3s...', 'text-red-400');
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+        
+        connectWebSocket();
+
+        // Helpers
+        function appendLog(text, colorClass = 'text-slate-300') {
+            const terminal = document.getElementById('terminal');
+            const time = new Date().toLocaleTimeString([], {hour12:false});
+            const line = document.createElement('div');
+            
+            // Highlight specific logs
+            if(text.includes('Error') || text.includes('failed')) colorClass = 'text-red-400';
+            if(text.includes('NACK')) colorClass = 'text-amber-400';
+            if(text.includes('Success')) colorClass = 'text-neonGreen';
+
+            line.className = colorClass;
+            line.innerHTML = `<span class="text-slate-500">[${time}]</span> ${text}`;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('terminal').innerHTML = '';
+        }
+
+        function setProgress(percent) {
+            const circle = document.getElementById('progressCircle');
+            const text = document.getElementById('progressText');
+            circle.setAttribute('stroke-dasharray', `${percent}, 100`);
+            text.textContent = `${percent}%`;
+            
+            if(percent > 0 && percent < 100) {
+                circle.classList.add('stroke-cyan-400');
+                circle.classList.remove('stroke-neonGreen');
+            } else if (percent === 100) {
+                circle.classList.replace('stroke-cyan-400', 'stroke-neonGreen');
+            }
+        }
+
+        let packetCount = 0;
+        let lastTime = Date.now();
+        
+        function handleCanFrames(frames, count) {
+            const table = document.getElementById('canTable');
+            const now = Date.now();
+            
+            // Calculate PPS and Load every second
+            packetCount += (count || frames.length);
+            if (now - lastTime >= 1000) {
+                const pps = packetCount;
+                document.getElementById('canPps').textContent = `${pps} pps`;
+                
+                // Very rough estimation: (pps * max frame size ~140 bits) / 1,000,000 bits per sec
+                const load = ((pps * 140) / 1000000) * 100;
+                document.getElementById('canLoad').textContent = `${load.toFixed(1)}% Load`;
+                
+                packetCount = 0;
+                lastTime = now;
+            }
+
+            // Create fragment to batch DOM inserts
+            const fragment = document.createDocumentFragment();
+            const timeStr = new Date().toISOString().substring(11, 23); // HH:mm:ss.SSS
+
+            // Optimisation: Only render the latest 100 frames if the batch is huge (Custom Protocol blasts frames!)
+            const framesToRender = frames.slice(-100);
+
+            framesToRender.forEach(f => {
+                const row = document.createElement('div');
+                let color = 'text-slate-300';
+                if(f.id === '0x100' || f.id === '0x7E0') color = 'text-blue-400'; // Host -> Target
+                if(f.id === '0x101' || f.id === '0x7E8') color = 'text-green-400'; // Target -> Host
+                if(f.id === '0x200') color = 'text-amber-400'; // Special triggers
+
+                row.className = `flex gap-4 hover:bg-slate-800/50 px-2 py-1 ${color}`;
+                row.innerHTML = `
+                    <div class="w-20 text-slate-500">${timeStr}</div>
+                    <div class="w-16 font-bold">${f.id}</div>
+                    <div class="w-8">${f.dlc}</div>
+                    <div class="flex-1 tracking-widest">${f.data}</div>
+                `;
+                fragment.appendChild(row);
+            });
+
+            // Prepend new rows
+            table.insertBefore(fragment, table.firstChild);
+            
+            // Keep only the latest 100 rows to prevent memory leak and lag
+            while (table.children.length > 100) {
+                table.removeChild(table.lastChild);
+            }
+        }
+
+        // Actions
+        async function uploadFirmware() {
+            const fileInput = document.getElementById('fileInput');
+            if(fileInput.files.length === 0) {
+                alert('Please select a .bin file first.');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const btn = document.getElementById('uploadBtn');
+            const originalText = btn.innerText;
+            btn.innerText = 'Uploading...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                if(result.status === 'success') {
+                    document.getElementById('uploadStatus').classList.remove('hidden');
+                    document.getElementById('startBtn').disabled = false;
+                    appendLog(`Uploaded ${result.filename} (${(result.size/1024).toFixed(1)} KB) successfully.`, 'text-neonGreen');
+                } else {
+                    alert('Upload failed: ' + result.message);
+                }
+            } catch (err) {
+                alert('Upload error: ' + err);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function startUpdate() {
+            const protocol = document.getElementById('protocolSelect').value;
+            const board = document.getElementById('boardSelect').value;
+            const bitrate = document.getElementById('bitrateSelect').value;
+            const btn = document.getElementById('startBtn');
+            
+            document.getElementById('activeProtocolText').textContent = `${protocol.toUpperCase()} (${board.toUpperCase()})`;
+            document.getElementById('rateText').textContent = '-- kbps'; // Reset rate text
+            window.lastBytesTime = null; // Reset rate timer
+            setProgress(0);
+            
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    action: 'start_update',
+                    protocol: protocol,
+                    board: board,
+                    bitrate: bitrate
+                }));
+            } else {
+                alert("WebSocket is not connected.");
+            }
+        }
+    </script>
+</body>
+</html>
