@@ -41,6 +41,8 @@ RDEPENDS:${PN} += " \
     python3-asyncio \
     python3-websockets \
     python3-jinja2 \
+    python3-fastapi \
+    python3-uvicorn \
     can-utils \
     iproute2 \
 "
