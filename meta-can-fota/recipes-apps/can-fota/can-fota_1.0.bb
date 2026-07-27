@@ -27,7 +27,9 @@ inherit systemd
 
 SYSTEMD_PACKAGES = "${PN}"
 SYSTEMD_SERVICE:${PN} = "setup-can0.service can-fota.service"
-SYSTEMD_AUTO_ENABLE:${PN} = "enable" # 타겟 이미지 설치 시 부팅 자동 시작 활성화
+# 타겟 이미지 설치 시 부팅 자동 시작 활성화
+SYSTEMD_AUTO_ENABLE:${PN} = "enable"
+
 
 # ------------------------------------------------------------------------------
 # 런타임 의존성 (RDEPENDS)
