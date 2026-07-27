@@ -1,0 +1,27 @@
+# ==============================================================================
+# BeagleBone Black CAN0 인터페이스 부팅 자동 활성화 서비스
+# ==============================================================================
+[Unit]
+# 서비스 설명 (systemctl status 명령어 등에서 확인 가능)
+Description=Setup CAN0 Interface
+
+# 네트워크 타겟(네트워크 관련 드라이버/모듈 초기화)이 완료된 직후에 이 서비스를 실행함
+After=network.target
+
+[Service]
+# Type=oneshot: 단발성 실행 서비스 (명령어를 한 번 실행한 뒤 종료되는 형태)
+Type=oneshot
+
+# can0 인터페이스를 비트레이트 500kbps(500000)로 켜는 명령어 실행
+# (STM32F103 통신 표준 비트레이트인 500kbs에 맞춰 설정)
+ExecStart=/sbin/ip link set can0 up type can bitrate 500000
+
+# 서비스 중지 시 can0 인터페이스를 내림(down)
+ExecStop=/sbin/ip link set can0 down
+
+# Type=oneshot 프로세스가 한 번 실행되고 끝났어도, systemd 상태상 active (exited)로 유휴 유지시킴
+RemainAfterExit=yes
+
+[Install]
+# multi-user.target (일반 텍스트 멀티유저 부팅 단계)에 이 서비스를 등록하여 부팅 시 자동 실행
+WantedBy=multi-user.target
