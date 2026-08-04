@@ -31,3 +31,6 @@ __pycache__/
 # 시스템 파일
 .DS_Store
 Thumbs.db
+
+# Security: Ignore secret ngrok.yml configuration file
+meta-can-fota/recipes-apps/can-fota/files/ngrok.yml
