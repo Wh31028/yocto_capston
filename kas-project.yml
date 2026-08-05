@@ -1,0 +1,61 @@
+header:
+  version: 14
+
+machine: beaglebone-yocto
+distro: poky
+target: core-image-minimal
+
+repos:
+  poky:
+    url: "https://git.yoctoproject.org/poky"
+    refspec: "scarthgap"
+    layers:
+      meta:
+      meta-poky:
+      meta-yocto-bsp:
+
+  meta-openembedded:
+    url: "https://github.com/openembedded/meta-openembedded.git"
+    refspec: "scarthgap"
+    layers:
+      meta-oe:
+      meta-python:
+      meta-networking:
+
+  meta-can-fota:
+    path: "meta-can-fota"
+
+# local.conf 에 자동으로 주입될 설정값들
+local_conf_header:
+  base_setup: |
+    #  빌드 디스크 용량 절약 (rm_work)
+    INHERIT += "rm_work"
+    RM_OLD_IMAGE = "1"
+    
+    # Systemd 사용 (FastAPI 서비스 부팅 시 자동 개시용)
+    INIT_MANAGER = "systemd"
+    
+    # 개발/디버깅 유틸리티 (필요 시 root 비밀번호 없이 ssh/serial 접속 가능)
+    EXTRA_IMAGE_FEATURES ?= "debug-tweaks"
+    
+    # 메모리 폭사 방지: 동시 빌드 스레드 제한 (4스레드로 안전하게 컴파일)
+    BB_NUMBER_THREADS = "4"
+    PARALLEL_MAKE = "-j 4"
+
+  image_install_packages: |
+    # CAN 통신 하드웨어 제어 필수 커널 모듈 (드라이버)
+    IMAGE_INSTALL:append = " kernel-modules"
+    
+    # 디버깅 및 하드웨어 제어 유틸리티
+    IMAGE_INSTALL:append = " python3-pip python3-setuptools libgpiod libgpiod-tools"
+    
+    # USB 디바이스 확인 및 모드 전환 (화웨이 LTE 모뎀용 필수)
+    IMAGE_INSTALL:append = " usbutils usb-modeswitch udev-extraconf"
+    
+    # LTE 모뎀 네트워크 통신 관련
+    IMAGE_INSTALL:append = " ppp"
+    
+    # CAN-FOTA 애플리케이션 및 무선 터널링 서비스
+    # (주의: can-utils, iproute2, python3 웹 패키지들은 can-fota 레시피가 알아서 끌고 오므로 생략됨)
+    IMAGE_INSTALL:append = " can-fota"
+
