@@ -1,32 +1,29 @@
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: yocto-dev <yocto-dev@local>
-Date: Mon, 01 Jan 2024 00:00:00 +0000
-Subject: [PATCH] arm: dts: am335x-boneblack: enable DCAN0 (CAN0) pinmux and node
-
 Upstream-Status: Inappropriate [board-specific]
 
 diff --git a/arch/arm/boot/dts/ti/omap/am335x-boneblack.dts b/arch/arm/boot/dts/ti/omap/am335x-boneblack.dts
-index 16b567e3cb47..a0eb392b93e1 100644
+index 16b567e3cb47..9767bddcdd2d 100644
 --- a/arch/arm/boot/dts/ti/omap/am335x-boneblack.dts
 +++ b/arch/arm/boot/dts/ti/omap/am335x-boneblack.dts
-@@ -173,3 +173,18 @@ &gpio3 {
+@@ -173,3 +173,22 @@ &gpio3 {
  &baseboard_eeprom {
  	vcc-supply = <&ldo4_reg>;
  };
 +
 +&am33xx_pinmux {
-+    dcan0_pins: dcan0-pins {
-+        pinctrl-single,pins = <
-+        AM33XX_PADCONF(AM335X_PIN_MII1_TXD3, PIN_OUTPUT, MUX_MODE1)
-+        AM33XX_PADCONF(AM335X_PIN_MII1_TXD2, PIN_INPUT, MUX_MODE1)
-+        >;
-+    };
++      dcan0_pins: dcan0-pins {
++          pinctrl-single,pins = <
++              AM33XX_PADCONF(AM335X_PIN_UART1_CTSN, PIN_OUTPUT_PULLUP, MUX_MODE2)
++              AM33XX_PADCONF(AM335X_PIN_UART1_RTSN, PIN_INPUT_PULLUP, MUX_MODE2)
++          >;
++      };
 +};
 +
 +&dcan0 {
-+    pinctrl-names = "default";
-+    pinctrl-0 = <&dcan0_pins>;
-+    status = "okay";
++      pinctrl-names = "default";
++      pinctrl-0 = <&dcan0_pins>;
++      status = "okay";
 +};
-
-
++
++&i2c2 {
++      status = "disabled";
++};
