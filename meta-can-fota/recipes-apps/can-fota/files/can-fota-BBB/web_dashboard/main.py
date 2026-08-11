@@ -117,9 +117,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 # 1. Configure CAN Interface Bitrate
                 await websocket.send_json({"type": "log", "data": f"Configuring CAN interface to {int(bitrate)//1000} kbps..."})
                 try:
-                    proc_down = await asyncio.create_subprocess_shell("sudo ip link set can0 down")
+                    proc_down = await asyncio.create_subprocess_shell("ip link set can0 down")
                     await proc_down.wait()
-                    proc_up = await asyncio.create_subprocess_shell(f"sudo ip link set can0 up type can bitrate {bitrate}")
+                    proc_up = await asyncio.create_subprocess_shell(f"ip link set can0 up type can bitrate {bitrate}")
                     await proc_up.wait()
                     
                     if proc_up.returncode == 0:
