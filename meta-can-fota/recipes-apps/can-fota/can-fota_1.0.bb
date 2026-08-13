@@ -43,6 +43,10 @@ RDEPENDS:${PN} += " \
     ngrok \
 "
 
+do_compile() {
+    oe_runmake -C ${S}/can-fota-BBB
+}
+
 # ------------------------------------------------------------------------------
 # 설치 태스크 (do_install)
 # ------------------------------------------------------------------------------
@@ -50,6 +54,7 @@ do_install() {
     # 1. 파이썬 앱 및 웹 대시보드 소스 설치 (/usr/share/can-fota)
     install -d ${D}${datadir}/can-fota
     cp -r ${S}/can-fota-BBB/* ${D}${datadir}/can-fota/
+    install -m 0755 ${S}/can-fota-BBB/can_fota_flasher ${D}${datadir}/can-fota/can_fota_flasher
 
     # 2. systemd 서비스 파일 설치 (/lib/systemd/system)
     install -d ${D}${systemd_system_unitdir}

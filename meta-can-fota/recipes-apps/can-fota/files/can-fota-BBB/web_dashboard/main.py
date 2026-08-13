@@ -5,7 +5,6 @@ from fastapi.staticfiles import StaticFiles
 import os
 import subprocess
 import asyncio
-import sys
 import socket
 import struct
 import time
@@ -82,6 +81,9 @@ templates = Jinja2Templates(directory=templates_dir)
 # Absolute paths
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 FIRMWARE_SAVE_PATH = os.path.join(BASE_DIR, "received_fw.bin")
+FLASHER_PATH = os.path.join(BASE_DIR, "can_fota_flasher")
+CAN_INTERFACE = "can0"
+IP_COMMAND = "/sbin/ip"
 
 @app.get("/", response_class=HTMLResponse)
 async def get_dashboard(request: Request):
@@ -110,41 +112,51 @@ async def websocket_endpoint(websocket: WebSocket):
             if action == "start_update":
                 protocol = data.get("protocol", "custom")
                 board = data.get("board", "f407")
-                bitrate = data.get("bitrate", "1000000")
+                try:
+                    bitrate = int(data.get("bitrate", "1000000"))
+                except (TypeError, ValueError):
+                    await websocket.send_json({"type": "log", "data": "[Error] Invalid CAN bitrate."})
+                    await websocket.send_json({"type": "status", "data": "FAILED"})
+                    continue
+
+                if protocol not in {"custom", "isotp"}:
+                    await websocket.send_json({"type": "log", "data": f"[Error] Unsupported protocol: {protocol}"})
+                    await websocket.send_json({"type": "status", "data": "FAILED"})
+                    continue
                 
                 await websocket.send_json({"type": "status", "data": "UPDATING"})
                 
                 # 1. Configure CAN Interface Bitrate
-                await websocket.send_json({"type": "log", "data": f"Configuring CAN interface to {int(bitrate)//1000} kbps..."})
+                await websocket.send_json({"type": "log", "data": f"Configuring CAN interface to {bitrate // 1000} kbps..."})
                 try:
-                    proc_down = await asyncio.create_subprocess_shell("ip link set can0 down")
+                    proc_down = await asyncio.create_subprocess_exec(
+                        IP_COMMAND, "link", "set", CAN_INTERFACE, "down"
+                    )
                     await proc_down.wait()
-                    proc_up = await asyncio.create_subprocess_shell(f"ip link set can0 up type can bitrate {bitrate}")
+                    proc_up = await asyncio.create_subprocess_exec(
+                        IP_COMMAND, "link", "set", CAN_INTERFACE, "up", "type", "can",
+                        "bitrate", str(bitrate)
+                    )
                     await proc_up.wait()
                     
                     if proc_up.returncode == 0:
                         await websocket.send_json({"type": "log", "data": "CAN interface configured successfully."})
                     else:
-                        await websocket.send_json({"type": "log", "data": "[Warning] CAN config failed (check sudo privileges). Using existing settings."})
+                        await websocket.send_json({"type": "log", "data": f"[Error] CAN config failed (ip link exit {proc_up.returncode})."})
                 except Exception as e:
                     await websocket.send_json({"type": "log", "data": f"[Error] CAN config exception: {e}"})
 
-                # 2. Determine target Python script
-                script_name = f"{protocol}_lte_gateway.py"
-                if board == "f103":
-                    script_name = f"{protocol}_lte_gateway_f103.py"
-                    
-                script_path = os.path.join(BASE_DIR, script_name)
-                
-                if not os.path.exists(script_path):
-                    await websocket.send_json({"type": "log", "data": f"[Error] Script {script_name} not found."})
+                # 2. Execute the native C flasher. Board selection is retained for UI logging.
+                if not os.path.isfile(FLASHER_PATH) or not os.access(FLASHER_PATH, os.X_OK):
+                    await websocket.send_json({"type": "log", "data": "[Error] C flasher binary is not installed."})
+                    await websocket.send_json({"type": "status", "data": "FAILED"})
                     continue
 
                 await websocket.send_json({"type": "log", "data": f"Starting {protocol.upper()} FOTA update on {board.upper()}..."})
                 
-                # Using sys.executable to run with current python, passing FIRMWARE_SAVE_PATH
+                # can_fota_flasher <custom|isotp> <firmware_path> [interface_name]
                 process = await asyncio.create_subprocess_exec(
-                    sys.executable, script_path, FIRMWARE_SAVE_PATH,
+                    FLASHER_PATH, protocol, FIRMWARE_SAVE_PATH, CAN_INTERFACE,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.STDOUT,
                     cwd=BASE_DIR
