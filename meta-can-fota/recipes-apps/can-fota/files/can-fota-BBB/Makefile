@@ -1,14 +1,14 @@
-CC ?= gcc
-CFLAGS += -Wall -Wextra -O2
-LDFLAGS ?=
-
 TARGET = can_fota_flasher
-SRCS = can_fota_flasher.c
+FLASHER_DIR = flasher
 
 all: $(TARGET)
 
-$(TARGET): $(SRCS)
-	$(CC) $(CFLAGS) $(SRCS) -o $(TARGET) $(LDFLAGS)
+$(TARGET): $(FLASHER_DIR)/$(TARGET)
+	cp $< $@
+
+$(FLASHER_DIR)/$(TARGET):
+	$(MAKE) -C $(FLASHER_DIR)
 
 clean:
 	rm -f $(TARGET)
+	$(MAKE) -C $(FLASHER_DIR) clean
