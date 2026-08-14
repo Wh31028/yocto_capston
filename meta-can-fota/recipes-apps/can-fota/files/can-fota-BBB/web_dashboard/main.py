@@ -113,7 +113,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 protocol = data.get("protocol", "custom")
                 board = data.get("board", "f407")
                 try:
-                    bitrate = int(data.get("bitrate", "1000000"))
+                    bitrate = int(data.get("bitrate", "500000"))
                 except (TypeError, ValueError):
                     await websocket.send_json({"type": "log", "data": "[Error] Invalid CAN bitrate."})
                     await websocket.send_json({"type": "status", "data": "FAILED"})
