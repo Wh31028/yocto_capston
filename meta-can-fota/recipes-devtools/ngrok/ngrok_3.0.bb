@@ -3,7 +3,7 @@ HOMEPAGE = "https://ngrok.com"
 LICENSE = "CLOSED"
 
 SRC_URI = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm.tgz;downloadfilename=ngrok-v3-stable-linux-arm.tgz"
-SRC_URI[sha256sum] = "a23e84d4706587740a5d590fa57fc42e289f2fd23c8694e9265a398890efb753"
+SRC_URI[sha256sum] = "7c8ac825d31da1005d634f9130fd7512a2f4ab2d13b63eee0ed12dc6a16e727d"
 
 S = "${WORKDIR}"
 
