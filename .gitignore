@@ -33,4 +33,11 @@ __pycache__/
 Thumbs.db
 
 # Security: Ignore secret ngrok.yml configuration file
-meta-can-fota/recipes-apps/can-fota/files/ngrok.yml
+meta-can-fota/recipes-apps/can-fota/files/ngrok.yml
+
+# kas-managed upstream layers
+poky/
+meta-openembedded/
+
+# aider
+.aider*
