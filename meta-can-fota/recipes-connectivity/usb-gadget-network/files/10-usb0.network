@@ -1,0 +1,18 @@
+# Static IP for the USB NCM gadget interface (development access over USB).
+# Must sort before 80-wired.network, otherwise usb0 would run a DHCP client.
+[Match]
+Name=usb0
+
+[Network]
+Address=192.168.7.2/24
+LinkLocalAddressing=no
+ConfigureWithoutCarrier=yes
+DHCPServer=yes
+
+[DHCPServer]
+# Hand out 192.168.7.100-119 to the host PC. Do not advertise a default
+# route or DNS so the host keeps using its normal internet connection.
+PoolOffset=100
+PoolSize=20
+EmitRouter=no
+EmitDNS=no

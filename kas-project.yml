@@ -39,6 +39,8 @@ local_conf_header:
     EXTRA_IMAGE_FEATURES ?= "debug-tweaks"
     # Development image only: include the OpenSSH server for key-based remote access.
     EXTRA_IMAGE_FEATURES:append = " ssh-server-openssh"
+    # Development image only: SSH over USB (g_ncm gadget, BBB = 192.168.7.2).
+    IMAGE_INSTALL:append = " usb-gadget-network"
     
     # 메모리 폭사 방지: 동시 빌드 스레드 제한 (4스레드로 안전하게 컴파일)
     BB_NUMBER_THREADS = "4"
